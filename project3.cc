@@ -59,42 +59,15 @@ void parse_num_list(){
 }
 
 void parse_assign_stmt(){
-    struct InstructionNode * iNode = new InstructionNode;
-    iNode->type = ASSIGN;
-    iNode->assign_inst.left_hand_side_index = location[token.lexeme];
-    //parse EQUAL
-    token = lexer.GetToken();
-    //parse primary or expr (first operand)
-    token = lexer.GetToken();
-    
-    // if this is a constant, then allocate memory for it
-    // a constant is not in variable list at the beginning
-    // it would not be in the location map
-    if (location.find(token.lexeme) == location.end()) {
-        location[token.lexeme] = next_available;
-        mem[next_available] = stoi(token.lexeme);
-        next_available++;
-    }
-    if (lexer.peek(1).token_type == SEMICOLON){        
-        iNode->assign_inst.operand1_index = location[token.lexeme];
-        iNode->assign_inst.op = OPERATOR_NONE;
-    } else {
-        token = lexer.GetToken(); //parse the operator
-        switch(token.token_type){
-            case PLUS:
-                iNode->assign_inst.op = OPERATOR_PLUS;
-                break;
-            case MINUS:
-                iNode->assign_inst.op = OPERATOR_MINUS;
-                break;
-            case MULT:
-                iNode->assign_inst.op = OPERATOR_MULT;
-                break;
-            case DIV:
-                iNode->assign_inst.op = OPERATOR_DIV;
-                break;
-        }
-        token = lexer.GetToken(); //parse second operand
+    try{
+        struct InstructionNode * iNode = new InstructionNode;
+        iNode->type = ASSIGN;
+        iNode->assign_inst.left_hand_side_index = location[token.lexeme];
+        //parse EQUAL
+        token = lexer.GetToken();
+        //parse primary or expr (first operand)
+        token = lexer.GetToken();
+        
         // if this is a constant, then allocate memory for it
         // a constant is not in variable list at the beginning
         // it would not be in the location map
@@ -103,12 +76,48 @@ void parse_assign_stmt(){
             mem[next_available] = stoi(token.lexeme);
             next_available++;
         }
-        iNode->assign_inst.operand2_index = location[token.lexeme]; 
-    }
+        
+        // assign the first operand
+        iNode->assign_inst.operand1_index = location[token.lexeme];
+
+        if (lexer.peek(1).token_type == SEMICOLON){        
+            iNode->assign_inst.op = OPERATOR_NONE;
+        } else {   
+            token = lexer.GetToken(); //parse the operator
+            switch(token.token_type){
+                case PLUS:
+                    iNode->assign_inst.op = OPERATOR_PLUS;
+                    break;
+                case MINUS:
+                    iNode->assign_inst.op = OPERATOR_MINUS;
+                    break;
+                case MULT:
+                    iNode->assign_inst.op = OPERATOR_MULT;
+                    break;
+                case DIV:
+                    iNode->assign_inst.op = OPERATOR_DIV;
+                    break;
+            }
+            token = lexer.GetToken(); //parse second operand
+            // if this is a constant, then allocate memory for it
+            // a constant is not in variable list at the beginning
+            // it would not be in the location map
+            if (location.find(token.lexeme) == location.end()) {
+                location[token.lexeme] = next_available;
+                mem[next_available] = stoi(token.lexeme);
+                next_available++;
+            }
+            iNode->assign_inst.operand2_index = location[token.lexeme]; 
+        }
+
         current->next = iNode;      
         current = iNode;
         lexer.GetToken(); //parse the semicolon
-        token = lexer.GetToken(); 
+        token = lexer.GetToken();
+
+    } catch (exception e) {
+        cout << e.what() << endl;    
+    }
 }
 
 void parse_input_stmt(){
@@ -168,7 +177,8 @@ void parse_statement_list(){
 
 // Function to print the linked list
 void printLinkedList(InstructionNode* head) {
-    InstructionNode* current = head;
+    InstructionNode* current = nullptr;
+    current = head;
 
     while (current != nullptr) {
         // Print the contents of the current node based on its type
@@ -216,7 +226,10 @@ struct InstructionNode * parse_generate_intermediate_representation()
     //parse LBRACE
     token = lexer.GetToken();
     
-    parse_statement_list();    
+    parse_statement_list();
+
+    //end of list is nullptr
+    current->next = nullptr;
 
     //parse RBRACE (already parsed by parse_statement_list)
     // token = lexer.GetToken();
@@ -225,8 +238,7 @@ struct InstructionNode * parse_generate_intermediate_representation()
 
     //Inputs
     parse_num_list();
-
-    //printLinkedList(head);
+    // printLinkedList(head);
     
     return head;
 }

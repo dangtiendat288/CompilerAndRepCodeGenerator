@@ -83,8 +83,9 @@ void parse_assign_stmt(){
         mem[next_available] = stoi(token.lexeme);
         next_available++;
     }
+    iNode->assign_inst.operand1_index = location[token.lexeme];        
+
     if (lexer.peek(1).token_type == SEMICOLON){        
-        iNode->assign_inst.operand1_index = location[token.lexeme];
         iNode->assign_inst.op = OPERATOR_NONE;
     } else {
         token = lexer.GetToken(); //parse the operator
@@ -236,7 +237,10 @@ struct InstructionNode * parse_generate_intermediate_representation()
     cout << "LBRACE" << token.token_type << endl;
 
     
-    parse_statement_list();    
+    parse_statement_list();
+    
+    //end of list is nullptr
+    current->next = nullptr; 
 
     //parse RBRACE
     // token = lexer.GetToken();
