@@ -223,11 +223,6 @@ struct InstructionNode* parse_if_stmt(){
     token = lexer.GetToken();  
     // printLinkedList(head);
     
-    //Get the last node to return
-    // while(current->next != nullptr){
-    //     current = current->next;
-    // }
-
     return iNode;
 };
 
@@ -269,7 +264,17 @@ struct InstructionNode* parse_statement_list(){
             if(instl1->type == CJMP){
                 //append instl2 to the last node of instl1
                 InstructionNode* lastNode = instl1;
-                while(lastNode->type != 1000){  //1000 is the NOOP type
+
+                //Get the last NOOP node of the if's body to return
+                int ifCtr = 0;
+                while(lastNode != nullptr && (lastNode->type != NOOP || ifCtr != 1)){
+                    if(lastNode->type == CJMP){
+                        ifCtr++;
+                    }
+                    if(lastNode->type == NOOP){
+                        ifCtr--;
+                    }
+                    
                     lastNode = lastNode->next;
                 }
                 lastNode->next = instl2;
