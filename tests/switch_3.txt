@@ -1,0 +1,14 @@
+a, b;
+{
+    input a; 
+    input b; 
+    SWITCH a {
+        CASE 1:{
+            output a;
+        }
+        CASE 2:{  
+            output b;
+        }
+    }
+}
+1 2 3

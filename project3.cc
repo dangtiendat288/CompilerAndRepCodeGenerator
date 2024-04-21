@@ -19,6 +19,7 @@ map<string, int> location;
 InstructionNode* head = nullptr;
 InstructionNode* current = nullptr;
 InstructionNode* endOfFor = nullptr;
+InstructionNode* endOfSwitch = nullptr;
 
 struct InstructionNode* parse_statement_list();
 void printLinkedList(InstructionNode* head);
@@ -512,10 +513,136 @@ struct InstructionNode* parse_for_stmt(){
 
     //parse the RBRACE
     token = lexer.GetToken();  
-    printLinkedList(head);
+    // printLinkedList(head);
     cout << endl;
     
     return assignNode1;
+}
+
+struct InstructionNode* parse_switch_stmt(){
+    //get the var
+    token = lexer.GetToken();
+
+    int switch_var_index = location[token.lexeme];
+
+    //parse LBRACE
+    lexer.GetToken();
+    
+    InstructionNode* noopStartNode = new InstructionNode;
+    noopStartNode->type = NOOP;
+    noopStartNode->next = nullptr;
+
+    //Add this to the existing list
+    current->next = noopStartNode;
+    current = noopStartNode;
+    
+    InstructionNode* currentIf = noopStartNode;
+
+    //parse CASE
+    Token nextToken = lexer.peek(1);
+    int count = 0;
+    while(nextToken.token_type == CASE && count < 3){
+        token = lexer.GetToken();
+        if(token.token_type == CASE){
+            //parse NUM
+            token = lexer.GetToken();
+
+            // this is a constant so allocate memory for it
+            // a constant is not in variable list at the beginning
+            // it would not be in the location map
+            if (location.find(token.lexeme) == location.end()) {
+                location[token.lexeme] = next_available;
+                mem[next_available] = stoi(token.lexeme);
+                next_available++;
+            }
+
+            int switch_case_index = location[token.lexeme];
+            //parse colon
+            lexer.GetToken();
+            //parse LBRACE
+            lexer.GetToken();
+            
+            //Declare ifNode
+            InstructionNode* ifNode = new InstructionNode;
+            ifNode->type = CJMP;
+            ifNode->next = nullptr;   
+
+            currentIf->next = ifNode;
+            currentIf = ifNode;
+
+            //assign first operand
+            ifNode->cjmp_inst.operand1_index = switch_var_index;
+            //assign operator
+            ifNode->cjmp_inst.condition_op = CONDITION_NOTEQUAL;
+            //assign second operand
+            ifNode->cjmp_inst.operand2_index = switch_case_index;
+
+            //add this node to the list of nodes
+            current->next = ifNode;      
+            current = ifNode;
+
+            //parse_body
+            parse_statement_list();
+
+            //ifNode->next = head of body
+            InstructionNode* headOfBody = ifNode->next;
+
+            //ifNode->target = head of body
+            //jump if var == num (!(var != num))
+            ifNode->cjmp_inst.target = headOfBody;
+
+            //Declare a do nothing node
+            InstructionNode* noopNode = new InstructionNode;
+            noopNode->type = NOOP;
+            noopNode->next = nullptr;
+
+            InstructionNode* jmpNode = new InstructionNode;
+            jmpNode->next = headOfBody;
+            jmpNode->type = JMP;
+            jmpNode->jmp_inst.target = noopNode;  
+                
+            //ifNode->next = JMP node to NOOP
+            ifNode->next = jmpNode;
+
+            //current node is the end of the body 
+            current->next = noopNode;
+            current = noopNode;
+        
+            currentIf = noopNode;
+            //parse the RBRACE
+            token = lexer.GetToken();  
+            // printLinkedList(head);
+
+            nextToken = lexer.peek(1);
+        }
+        
+    }
+    
+    //Add default CASE
+    nextToken = lexer.peek(1);
+    if(nextToken.token_type == DEFAULT){
+        //parse DEFAULT
+        lexer.GetToken();
+        //parse colon
+        lexer.GetToken();
+        //parse LBRACE
+        lexer.GetToken();
+
+        //parse_body
+        parse_statement_list();
+            
+        //current node is the end of the body 
+        
+        //parse the RBRACE
+        token = lexer.GetToken();  
+    }
+
+    endOfSwitch = current;
+    //parse the RBRACE
+    token = lexer.GetToken(); 
+    // printLinkedList(head);
+    // cout << endl;
+    return noopStartNode;
 }
 
 struct InstructionNode* parse_stmt(){
@@ -523,9 +650,12 @@ struct InstructionNode* parse_stmt(){
     token = lexer.GetToken();
     //This while loop stops when token.type is none of the statements's beginning
     //while(token.token_type == ID || token.token_type == INPUT || token.token_type == OUTPUT){
-    if(token.token_type == FOR || token.token_type == WHILE || token.token_type == IF || token.token_type == ID || token.token_type == INPUT || token.token_type == OUTPUT){
+    if(token.token_type == SWITCH || token.token_type == FOR || token.token_type == WHILE || token.token_type == IF || token.token_type == ID || token.token_type == INPUT || token.token_type == OUTPUT){
         switch (token.token_type)
         {
+        case SWITCH: 
+            return parse_switch_stmt();
+            break; 
         case FOR: 
             return parse_for_stmt();
             break;    
@@ -558,16 +688,22 @@ struct InstructionNode* parse_statement_list(){
 
         instl1 = parse_stmt();
         Token nextToken = lexer.peek(1);
-        if(nextToken.token_type == FOR || nextToken.token_type == WHILE || nextToken.token_type == IF ||nextToken.token_type == ID || nextToken.token_type == INPUT || nextToken.token_type == OUTPUT){
+        if(nextToken.token_type == SWITCH || nextToken.token_type == FOR || nextToken.token_type == WHILE || nextToken.token_type == IF ||nextToken.token_type == ID || nextToken.token_type == INPUT || nextToken.token_type == OUTPUT){
             instl2 = parse_statement_list();
             
+            if(nextToken0.token_type == SWITCH){
+                endOfSwitch->next = instl2;
+                endOfSwitch = nullptr;
+                return instl1;
+            }
+
             if(nextToken0.token_type == FOR){
                 endOfFor->next = instl2;
                 endOfFor = nullptr;
                 return instl1;
             }
 
-            if(instl1->type == CJMP){
+            if(instl1->type == CJMP && (nextToken0.token_type == IF || nextToken0.token_type == WHILE)){
                 //append instl2 to the last node of instl1
                 InstructionNode* lastNode = instl1;
 
@@ -662,7 +798,7 @@ struct InstructionNode * parse_generate_intermediate_representation()
 
     //Inputs
     parse_num_list();
-    printLinkedList(head);
+    // printLinkedList(head);
     
     return head;
 }

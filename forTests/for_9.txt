@@ -1,0 +1,20 @@
+i, j, k, result;
+{
+    input i; 
+    input j;
+    input k;
+    result = 0;
+        FOR ( j = 5; j > 1; j = j; )
+        {            
+            IF j > 1 {	
+		        WHILE j > 0 {
+			        k = i*j;
+			        output k;
+			        j = j-1;
+                    result = i * j;
+		        }
+	        }
+            output result;
+        }
+}
+5 3 7 8
