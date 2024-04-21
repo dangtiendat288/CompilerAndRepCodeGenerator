@@ -1,0 +1,9 @@
+a, b, c;
+{
+    input c; 
+    FOR ( a = 0; a < 5; a = a + 1; )
+    {
+        output a;
+    }
+}
+2 3 5

@@ -1,0 +1,11 @@
+a, sum, n;
+{
+    input n;
+    sum = 0;
+    FOR ( a = 0; a < n; a = a + 1 ;)
+    {
+        sum = sum + a;
+        output sum;
+    }
+}
+4
