@@ -18,6 +18,7 @@ map<string, int> location;
 
 InstructionNode* head = nullptr;
 InstructionNode* current = nullptr;
+InstructionNode* endOfFor = nullptr;
 
 struct InstructionNode* parse_statement_list();
 void printLinkedList(InstructionNode* head);
@@ -507,6 +508,8 @@ struct InstructionNode* parse_for_stmt(){
     current->next = jmpNode;
     current = noopNode;
 
+    endOfFor = current;
+
     //parse the RBRACE
     token = lexer.GetToken();  
     // printLinkedList(head);
@@ -551,31 +554,16 @@ struct InstructionNode* parse_statement_list(){
         struct InstructionNode* instl1;
         struct InstructionNode* instl2;
 
+        Token nextToken0 = lexer.peek(1);
+
         instl1 = parse_stmt();
         Token nextToken = lexer.peek(1);
         if(nextToken.token_type == FOR || nextToken.token_type == WHILE || nextToken.token_type == IF ||nextToken.token_type == ID || nextToken.token_type == INPUT || nextToken.token_type == OUTPUT){
             instl2 = parse_statement_list();
             
-            if(instl1->type == ASSIGN){
-                if(instl1->next != nullptr && instl1->next->type == CJMP){
-                    //append instl2 to the last node of instl1
-                    InstructionNode* lastNode = instl1;
-
-                    //Get the last NOOP node of the if's body to return
-                    int ifCtr = 0;
-                    while(lastNode != nullptr && (lastNode->type != NOOP || ifCtr != 1)){
-                        if(lastNode->type == CJMP){
-                            ifCtr++;
-                        }
-                        if(lastNode->type == NOOP){
-                            ifCtr--;
-                        }
-                        
-                        lastNode = lastNode->next;
-                    }
-                    lastNode->next = instl2;
-                    return instl1;
-                }
+            if(nextToken0.token_type == FOR){
+                endOfFor->next = instl2;
+                endOfFor = nullptr;
             }
 
             if(instl1->type == CJMP){
