@@ -226,14 +226,101 @@ struct InstructionNode* parse_if_stmt(){
     return iNode;
 };
 
+struct InstructionNode* parse_while_stmt(){
+    InstructionNode* iNode = new InstructionNode;
+    iNode->type = CJMP;
+    iNode->next = nullptr;
+
+    //get the first operand
+    token = lexer.GetToken();
+    // if this is a constant, then allocate memory for it
+    // a constant is not in variable list at the beginning
+    // it would not be in the location map
+    if (location.find(token.lexeme) == location.end()) {
+        location[token.lexeme] = next_available;
+        mem[next_available] = stoi(token.lexeme);
+        next_available++;
+    }
+    //assign first operand
+    iNode->cjmp_inst.operand1_index = location[token.lexeme];
+
+    //get the relop
+    token = lexer.GetToken();
+    switch(token.token_type){
+        case GREATER:
+            iNode->cjmp_inst.condition_op = CONDITION_GREATER;
+            break;
+        case LESS:
+            iNode->cjmp_inst.condition_op = CONDITION_LESS;
+            break;
+        case NOTEQUAL:
+            iNode->cjmp_inst.condition_op = CONDITION_NOTEQUAL;
+            break;
+    }
+
+    //get the second operand
+    token = lexer.GetToken();
+    // if this is a constant, then allocate memory for it
+    // a constant is not in variable list at the beginning
+    // it would not be in the location map
+    if (location.find(token.lexeme) == location.end()) {
+        location[token.lexeme] = next_available;
+        mem[next_available] = stoi(token.lexeme);
+        next_available++;
+    }
+    //assign second operand
+    iNode->cjmp_inst.operand2_index = location[token.lexeme];
+
+    current->next = iNode;      
+    current = iNode;
+    //parse the LBRACE
+    token = lexer.GetToken();    
+    //parse_body
+    parse_statement_list();
+    //current node is the end of the if's body 
+    
+    //Declare a do nothing node
+    InstructionNode* noopNode = new InstructionNode;
+    noopNode->type = NOOP;
+    noopNode->next = nullptr;
+
+    //jmp to NOOP node when the while loop breaks
+    iNode->cjmp_inst.target = noopNode;
+    
+    InstructionNode* jmpNode = new InstructionNode;
+    jmpNode->next = noopNode;
+    jmpNode->type = JMP;
+    jmpNode->jmp_inst.target = iNode;        
+
+    //the node next to the body is the jmpNode
+    current->next = jmpNode;
+    current = noopNode;
+    
+    //parse the RBRACE
+    token = lexer.GetToken();  
+    // printLinkedList(head);
+    
+    return iNode;
+}
+
+struct InstructionNode* parse_for_stmt(){
+    
+}
+
 struct InstructionNode* parse_stmt(){
     //Get the beginning lexeme of statements
     token = lexer.GetToken();
     //This while loop stops when token.type is none of the statements's beginning
     //while(token.token_type == ID || token.token_type == INPUT || token.token_type == OUTPUT){
-    if(token.token_type == IF || token.token_type == ID || token.token_type == INPUT || token.token_type == OUTPUT){
+    if(token.token_type == FOR || token.token_type == WHILE || token.token_type == IF || token.token_type == ID || token.token_type == INPUT || token.token_type == OUTPUT){
         switch (token.token_type)
         {
+        case FOR: 
+            return parse_for_stmt();
+            break;    
+        case WHILE: 
+            return parse_while_stmt();
+            break;
         case IF:
             return parse_if_stmt();
             break;    
@@ -258,7 +345,7 @@ struct InstructionNode* parse_statement_list(){
 
         instl1 = parse_stmt();
         Token nextToken = lexer.peek(1);
-        if(nextToken.token_type == IF ||nextToken.token_type == ID || nextToken.token_type == INPUT || nextToken.token_type == OUTPUT){
+        if(nextToken.token_type == FOR || nextToken.token_type == WHILE || nextToken.token_type == IF ||nextToken.token_type == ID || nextToken.token_type == INPUT || nextToken.token_type == OUTPUT){
             instl2 = parse_statement_list();
             
             if(instl1->type == CJMP){
