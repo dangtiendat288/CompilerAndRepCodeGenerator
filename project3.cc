@@ -512,8 +512,8 @@ struct InstructionNode* parse_for_stmt(){
 
     //parse the RBRACE
     token = lexer.GetToken();  
-    // printLinkedList(head);
-    // cout << endl;
+    printLinkedList(head);
+    cout << endl;
     
     return assignNode1;
 }
@@ -564,6 +564,7 @@ struct InstructionNode* parse_statement_list(){
             if(nextToken0.token_type == FOR){
                 endOfFor->next = instl2;
                 endOfFor = nullptr;
+                return instl1;
             }
 
             if(instl1->type == CJMP){
@@ -661,7 +662,7 @@ struct InstructionNode * parse_generate_intermediate_representation()
 
     //Inputs
     parse_num_list();
-    // printLinkedList(head);
+    printLinkedList(head);
     
     return head;
 }
