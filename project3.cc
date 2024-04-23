@@ -514,7 +514,7 @@ struct InstructionNode* parse_for_stmt(){
     //parse the RBRACE
     token = lexer.GetToken();  
     // printLinkedList(head);
-    cout << endl;
+    // cout << endl;
     
     return assignNode1;
 }
@@ -528,6 +528,7 @@ struct InstructionNode* parse_switch_stmt(){
     //parse LBRACE
     lexer.GetToken();
     
+    //Create a noopStartNode
     InstructionNode* noopStartNode = new InstructionNode;
     noopStartNode->type = NOOP;
     noopStartNode->next = nullptr;
@@ -535,13 +536,19 @@ struct InstructionNode* parse_switch_stmt(){
     //Add this to the existing list
     current->next = noopStartNode;
     current = noopStartNode;
-    
-    InstructionNode* currentIf = noopStartNode;
 
-    //parse CASE
+    //Create a noopEndNode
+    InstructionNode* noopEndNode = new InstructionNode;
+    noopEndNode->type = NOOP;
+    noopEndNode->next = nullptr;
+    
+    // InstructionNode* currentIf = noopStartNode;
+
+    //peek CASE
     Token nextToken = lexer.peek(1);
-    int count = 0;
-    while(nextToken.token_type == CASE && count < 3){
+
+    while(nextToken.token_type == CASE){
+        //parse the CASE
         token = lexer.GetToken();
         if(token.token_type == CASE){
             //parse NUM
@@ -567,8 +574,9 @@ struct InstructionNode* parse_switch_stmt(){
             ifNode->type = CJMP;
             ifNode->next = nullptr;   
 
-            currentIf->next = ifNode;
-            currentIf = ifNode;
+            //Add this node to the switch's list of statements
+            // currentIf->next = ifNode;
+            // currentIf = ifNode;
 
             //assign first operand
             ifNode->cjmp_inst.operand1_index = switch_var_index;
@@ -596,6 +604,7 @@ struct InstructionNode* parse_switch_stmt(){
             noopNode->type = NOOP;
             noopNode->next = nullptr;
 
+            //Declare a jmp to local noop node
             InstructionNode* jmpNode = new InstructionNode;
             jmpNode->next = headOfBody;
             jmpNode->type = JMP;
@@ -604,11 +613,17 @@ struct InstructionNode* parse_switch_stmt(){
             //ifNode->next = JMP node to NOOP
             ifNode->next = jmpNode;
 
+            //Declare a jmp to noopEndNode
+            InstructionNode* jmpEndNode = new InstructionNode;
+            jmpEndNode->next = noopNode;
+            jmpEndNode->type = JMP;
+            jmpEndNode->jmp_inst.target = noopEndNode;  
+            
             //current node is the end of the body 
-            current->next = noopNode;
+            current->next = jmpEndNode;
             current = noopNode;
         
-            currentIf = noopNode;
+            // currentIf = noopNode;
             //parse the RBRACE
             token = lexer.GetToken();  
             // printLinkedList(head);
@@ -636,6 +651,55 @@ struct InstructionNode* parse_switch_stmt(){
         //parse the RBRACE
         token = lexer.GetToken();  
     }
+
+    //The final destination of switch statement
+    current->next = noopEndNode;
+    current = noopEndNode;
+
+    // //Declare a do nothing node
+    // InstructionNode* noopNodeDef1 = new InstructionNode;
+    // noopNodeDef1->type = NOOP;
+    // noopNodeDef1->next = nullptr;
+
+    // //Add noop after DEFAULT
+    // current->next = noopNodeDef1;
+    // current = noopNodeDef1;
+
+    // //Declare a do nothing node
+    // InstructionNode* noopNodeDef2 = new InstructionNode;
+    // noopNodeDef2->type = NOOP;
+    // noopNodeDef2->next = nullptr;
+
+    // //Add noop after DEFAULT
+    // current->next = noopNodeDef2;
+    // current = noopNodeDef2;
+
+    // //Declare a do nothing node
+    // InstructionNode* noopNodeDef3 = new InstructionNode;
+    // noopNodeDef3->type = NOOP;
+    // noopNodeDef3->next = nullptr;
+
+    // //Add noop after DEFAULT
+    // current->next = noopNodeDef3;
+    // current = noopNodeDef3;
+
+    // //Declare a do nothing node
+    // InstructionNode* noopNodeDef4 = new InstructionNode;
+    // noopNodeDef4->type = NOOP;
+    // noopNodeDef4->next = nullptr;
+
+    // //Add noop after DEFAULT
+    // current->next = noopNodeDef4;
+    // current = noopNodeDef4;
+
+    // //Declare a do nothing node
+    // InstructionNode* noopNodeDef5 = new InstructionNode;
+    // noopNodeDef5->type = NOOP;
+    // noopNodeDef5->next = nullptr;
+
+    //Add noop after DEFAULT
+    // current->next = noopNodeDef5;
+    // current = noopNodeDef5;
 
     endOfSwitch = current;
     //parse the RBRACE
@@ -683,27 +747,156 @@ struct InstructionNode* parse_statement_list(){
     try{
         struct InstructionNode* instl1;
         struct InstructionNode* instl2;
+        InstructionNode* lastOfInstl1;
+        InstructionNode* lastOfForInstl1;
 
         Token nextToken0 = lexer.peek(1);
 
         instl1 = parse_stmt();
+        if(nextToken0.token_type == FOR){
+            lastOfForInstl1 = current;
+        }
+        if(nextToken0.token_type == SWITCH){
+            // cout << "NOOP " <<  instl1->type << endl;
+            // cout << "CJMP " << instl1->next->type << endl;
+            
+            lastOfInstl1 = current;
+
+            // cout << "NOOP " << lastOfInstl1->type <<endl;
+            // if(lastOfInstl1->next != nullptr){
+            //     cout << "next of last" << lastOfInstl1->next->type << endl;
+            //     if(instl1->next->next != nullptr){
+            //         cout << "next next of last: " << lastOfInstl1->next->next->type << endl;
+            //     }
+            // }
+        }
+        
         Token nextToken = lexer.peek(1);
         if(nextToken.token_type == SWITCH || nextToken.token_type == FOR || nextToken.token_type == WHILE || nextToken.token_type == IF ||nextToken.token_type == ID || nextToken.token_type == INPUT || nextToken.token_type == OUTPUT){
             instl2 = parse_statement_list();
             
-            if(nextToken0.token_type == SWITCH){
-                endOfSwitch->next = instl2;
-                endOfSwitch = nullptr;
+            // if (instl1->type == NOOP && nextToken0.token_type == SWITCH) {
+            //     InstructionNode* currentNode = instl1->next;
+            //     InstructionNode* lastNoopNode = nullptr;
+            //     bool openIf = true;
+
+            //     // Traverse the list to find the last NOOP node within the block
+            //     while (currentNode != nullptr) {
+            //         if (currentNode->type == CJMP) {
+            //             openIf = true;  // Enter a new block
+            //         } else if (currentNode->type == NOOP) {
+            //             if (!openIf) {
+            //                 // Found the last NOOP node outside the block
+            //                 break;
+            //             }
+            //             lastNoopNode = currentNode;
+            //             openIf = false;  // Exit the current block
+            //         }
+            //         currentNode = currentNode->next;
+            //     }
+
+            //     // Append instl2 after the last NOOP node within the block
+            //     if (lastNoopNode != nullptr) {
+            //         lastNoopNode->next = instl2;
+            //     }
+
+            //     return instl1;
+            // }
+
+//Currently working
+            if(instl1->type == NOOP && nextToken0.token_type == SWITCH){
+                if(lastOfInstl1 != nullptr){
+                    lastOfInstl1->next = instl2;
+                }
                 return instl1;
             }
 
-            if(nextToken0.token_type == FOR){
-                endOfFor->next = instl2;
-                endOfFor = nullptr;
-                return instl1;
-            }
+//Currently working
+            // if(instl1->type == NOOP && nextToken0.token_type == SWITCH){
+            //     //append instl2 to the last node of instl1
+            //     //assign lastNode to the CJMP
+            //     InstructionNode* lastNode = instl1->next;
+                
+            //     //Get the last NOOP node of the if's body to return
+            //     // int ifCtr = 0;
+            //     bool openIf = 1;
+            //     while(lastNode != nullptr && (lastNode->type != NOOP || openIf )){
+            //         if(lastNode->type == CJMP){
+            //             openIf = 1;
+            //         }
+            //         if(lastNode->type == NOOP){
+            //             openIf = 0;
+            //         }
+            //         lastNode = lastNode->next;
 
-            if(instl1->type == CJMP && (nextToken0.token_type == IF || nextToken0.token_type == WHILE)){
+            //         // if(lastNode->next != nullptr){
+            //         //     if(lastNode->next->type == NOOP){
+            //         //         if(lastNode->next->next != nullptr){
+            //         //             if(lastNode->next->next->type == NOOP){
+            //         //                 if(lastNode->next->next->next != nullptr){
+            //         //                     if(lastNode->next->next->next->type == NOOP){
+            //         //                         if(lastNode->next->next->next->next != nullptr){
+            //         //                             if(lastNode->next->next->next->next->type == NOOP){
+            //         //                                 if(lastNode->next->next->next->next != nullptr){
+            //         //                                     if(lastNode->next->next->next->next->type == NOOP){
+            //         //                                         break;
+            //         //                                     }
+            //         //                                 }
+            //         //                             }
+            //         //                         } 
+            //         //                     }
+            //         //                 } 
+            //         //             }
+            //         //         }    
+            //         //     }
+            //         // }
+            //     }
+            //     // lastNode->next->next->next->next = instl2;
+            //     // cout << "Last of instl1 " << lastOfInstl1->next << endl;
+            //     // cout << "Last of instl1 " << lastOfInstl1->next->type << endl;
+            //     // cout << "Last of instl1 " << lastOfInstl1->next->next->type << endl;
+
+
+            //     // lastOfInstl1->next = instl2;
+            //     lastNode->next = instl2;
+            //     // cout << "Last of instl1 " << lastOfInstl1 << endl;
+            //     // cout << "Using while " << lastNode->next->next->next->next << endl;
+            //     // cout << "Using while " << lastNode->next->next->next->next->next << endl;
+            //     // cout << "Using while " << lastNode->next->next->next->next->next->next << endl;
+            //     // cout << "Using while " << lastNode->next->next->next->next->next->next->next << endl;
+
+            //     return instl1;
+            // }
+
+            // if(nextToken0.token_type == SWITCH){
+            //     endOfSwitch->next = instl2;
+            //     endOfSwitch = nullptr;
+            //     return instl1;
+            // }
+
+            // if(instl1->type == ASSIGN && nextToken0.token_type == FOR){
+            //     //append instl2 to the last node of instl1
+            //     InstructionNode* lastNode = instl1;
+
+            //     //Get the last NOOP node of the if's body to return
+            //     int ifCtr = 0;
+            //     while(lastNode != nullptr && (lastNode->type != NOOP || ifCtr != 1)){
+            //         if(lastNode->type == CJMP){
+            //             ifCtr++;
+            //         }
+            //         if(lastNode->type == NOOP){
+            //             ifCtr--;
+            //         }
+                    
+            //         lastNode = lastNode->next;
+            //     }
+                
+                
+            //     lastNode->next = instl2;
+            //     return instl1;
+            // }
+
+            if((instl1->type == CJMP || instl1->type == ASSIGN) && (nextToken0.token_type == FOR || nextToken0.token_type == IF || nextToken0.token_type == WHILE)){
                 //append instl2 to the last node of instl1
                 InstructionNode* lastNode = instl1;
 
@@ -722,7 +915,7 @@ struct InstructionNode* parse_statement_list(){
                 lastNode->next = instl2;
                 return instl1;
             }
-                        
+                                        
             instl1->next = instl2;
         } 
         return instl1;            
